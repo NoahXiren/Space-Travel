@@ -13,7 +13,6 @@ class Player(pygame.sprite.Sprite):
         self.speed = 300
         self.direction = pygame.math.Vector2()
         self.mask = pygame.mask.from_surface(self.image)
-
         # laser cooldown
         self.can_shoot = True
         self.laser_shoot_time = 0
@@ -24,14 +23,14 @@ class Player(pygame.sprite.Sprite):
             current_time = pygame.time.get_ticks() 
             if current_time - self.laser_shoot_time >= self.cooldown_duration:
                 self.can_shoot = True
-
+    
 
     def update(self, dt):
         keys = pygame.key.get_pressed()
         self.direction.y = int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])
         self.direction = self.direction.normalize() if self.direction else self.direction
         self.rect.center += self.direction * self.speed * dt
-        
+            
         #laser
         laser_keys = pygame.key.get_pressed()
         if laser_keys[pygame.K_SPACE] and self.can_shoot:
@@ -42,6 +41,8 @@ class Player(pygame.sprite.Sprite):
 
 
         self.laser_timer()
+
+
 
 class stars(pygame.sprite.Sprite):
     def __init__(self, pos, star_surf, group):
