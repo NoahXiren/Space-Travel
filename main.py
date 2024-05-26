@@ -1,11 +1,13 @@
 import pygame, sys
 import random
-from random import randint
+from random import randint, choice
 from random import uniform
 from os.path import join
+from scripts.particle import Particle
+
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, group):
+    def __init__(self, group, laser_surf, laser_sound, all_sprites, laser_sprites, particle_group):
         super().__init__(group)
         self.image = pygame.image.load('Images/rocket.png').convert_alpha()
         self.image.set_colorkey((0,0,0))
@@ -13,6 +15,12 @@ class Player(pygame.sprite.Sprite):
         self.speed = 300
         self.direction = pygame.math.Vector2()
         self.mask = pygame.mask.from_surface(self.image)
+        self.laser_surf = laser_surf
+        self.laser_sound = laser_sound
+        self.all_sprites = all_sprites
+        self.laser_sprites = laser_sprites
+        self.particle_group = particle_group
+
         # laser cooldown
         self.can_shoot = True
         self.laser_shoot_time = 0
@@ -34,14 +42,26 @@ class Player(pygame.sprite.Sprite):
         #laser
         laser_keys = pygame.key.get_pressed()
         if laser_keys[pygame.K_SPACE] and self.can_shoot:
-            Laser(laser_surf, self.rect.midright, (all_sprites, laser_sprites))
+            Laser(self.laser_surf, self.rect.midright, (self.all_sprites, self.laser_sprites))
             self.can_shoot = False
             self.laser_shoot_time = pygame.time.get_ticks()
-            laser_sound.play()
+            self.laser_sound.play()
+
+        # SPAWN PARTICLES
+        
+        if self.direction.y != 0:
+            self.spawn_particles(self.rect.midleft)
 
 
         self.laser_timer()
 
+    def spawn_particles(self, pos):
+        for i in range(5):
+            color = choice(('red', 'yellow', 'orange'))
+            direction = pygame.math.Vector2(uniform(-1,-0.5), uniform(-0.5, 0.5))
+            direction = direction.normalize()
+            speed = randint(50,400)
+            Particle(self.particle_group, pos, color, direction, speed)
 
 
 class stars(pygame.sprite.Sprite):
@@ -102,93 +122,119 @@ class Explosion(pygame.sprite.Sprite):
         else:
             self.kill()
 
-def Collision():
-    global game_run
-    collision_sprites = pygame.sprite.spritecollide(player, Aste_sprites, False, pygame.sprite.collide_mask)
-    if collision_sprites:
-            game_run = False
-            dead_sound.play()
 
-    for laser in laser_sprites:
-        destroyed_sprites = pygame.sprite.spritecollide(laser, Aste_sprites,True, pygame.sprite.collide_mask)
-        if destroyed_sprites:
-            laser.kill()
-            Explosion(destroyed_frames, laser.rect.midright, all_sprites)
-            Explosion_sound.play()
+class Game:
+    def __init__(self):   
+        pygame.init() 
+        pygame.display.set_caption('Space Walk')
+        self.screen = pygame.display.set_mode((500,500))
+        self.Display_surf = pygame.Surface((250,250))
+        self.clock = pygame.time.Clock()
+
+        # font
+        self.text_font = pygame.font.Font('font/pixelify_sans.ttf', 15)
+        # Assteroids
+        self.Asteroids_surf = pygame.image.load('Images/Aass.png').convert_alpha()
+        # laser
+        self.laser_surf = pygame.image.load('Images/laser.png').convert_alpha()
+        # star
+        self.star_surf = pygame.image.load('Images/star.png').convert_alpha()
+        # destroyed asteroids
+        self.destroyed_frames =  [pygame.image.load(join('Images' , 'Explosion', f'{i}.png')).convert_alpha() for i in range(8)]
+
+
+        # sound
+        self.laser_sound = pygame.mixer.Sound('sounds/laser_shoot.wav')
+        self.laser_sound.set_volume(0.3)
+
+        self.Explosion_sound = pygame.mixer.Sound('sounds/explosion.wav')
+        self.Explosion_sound.set_volume(0.3)
+
+        self.dead_sound = pygame.mixer.Sound('sounds/dead.wav')
+        self.dead_sound.set_volume(0.3)
+
+        # sprites
+        self.all_sprites = pygame.sprite.Group()
+        self.Aste_sprites = pygame.sprite.Group()
+        self.laser_sprites = pygame.sprite.Group()
+        self.particle_group = pygame.sprite.Group()
+
+        for i in range(20):
+            star_x = random.randint(5,245)
+            star_y = random.randint(5,245)
+            stars((star_x, star_y), self.star_surf, self.all_sprites)
+
+        self.player = Player(self.all_sprites, self.laser_surf, self.laser_sound, self.all_sprites, self.laser_sprites, self.particle_group)
+
+
+
+        # Asteroid timer(event)
+        self.Asteroid_event = pygame.event.custom_type() 
+        pygame.time.set_timer(self.Asteroid_event, 500) 
+
+        # particle event
+        self.particle_event = pygame.event.custom_type()
+        pygame.time.set_timer(self.particle_event,50)
+
+    def Collision(self):
+        global game_run
+        self.collision_sprites = pygame.sprite.spritecollide(self.player, self.Aste_sprites, False, pygame.sprite.collide_mask)
+        if self.collision_sprites:
+                game_run = False
+                self.dead_sound.play()
+
+        for laser in self.laser_sprites:
+            destroyed_sprites = pygame.sprite.spritecollide(laser, self.Aste_sprites,True, pygame.sprite.collide_mask)
+            if destroyed_sprites:
+                laser.kill()
+                Explosion(self.destroyed_frames, laser.rect.midright, self.all_sprites)
+                self.Explosion_sound.play()
 
             
  
-def Display_score():
-    current_time = pygame.time.get_ticks() // 1000
-    text_surf = text_font.render(str(current_time), False,'#04eef3')
-    text_rect = text_surf.get_frect(midbottom = (250/2, 240))
-    Display_surf.blit(text_surf,text_rect)
-    pygame.draw.rect(Display_surf, 'white', text_rect.inflate(20,10).move(0, 0), 2, 5 )
+    def Display_score(self):
+        self.current_time = pygame.time.get_ticks() // 1000
+        self.text_surf = self.text_font.render(str(self.current_time), False,'#04eef3')
+        self.text_rect = self.text_surf.get_frect(midbottom = (250/2, 240))
+        self.Display_surf.blit(self.text_surf,self.text_rect)
+        pygame.draw.rect(self.Display_surf, 'white', self.text_rect.inflate(20,10).move(0, 0), 2, 5 )
+
+    
+
+    def run(self):
+        while True:
+            dt = self.clock.tick() / 1000
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+
+                if event.type == self.Asteroid_event:
+                    Asteroid_x = randint(250,300)
+                    Asteroid_y = randint(0,250)
+                    Asteroids(self.Asteroids_surf,(Asteroid_x, Asteroid_y), (self.all_sprites, self.Aste_sprites))
+
+                if event.type == self.particle_event:
+                    self.player.spawn_particles(self.player.rect.midleft)
 
 
-pygame.init() 
-pygame.display.set_caption('Space Walk')
-screen = pygame.display.set_mode((500,500))
-Display_surf = pygame.Surface((250,250))
-clock = pygame.time.Clock()
 
-# variables
-game_run = True 
-# font
-text_font = pygame.font.Font('font/pixelify_sans.ttf', 15)
-# Assteroids
-Asteroids_surf = pygame.image.load('Images/Aass.png').convert_alpha()
-# laser
-laser_surf = pygame.image.load('Images/laser.png').convert_alpha()
-# star
-star_surf = pygame.image.load('Images/star.png').convert_alpha()
-# destroyed asteroids
-destroyed_frames =  [pygame.image.load(join('Images' , 'Explosion', f'{i}.png')).convert_alpha() for i in range(8)]
+            
 
+            self.all_sprites.update(dt)
 
-# sound
-laser_sound = pygame.mixer.Sound('sounds/laser_shoot.wav')
-laser_sound.set_volume(0.3)
+            self.Collision()
 
-Explosion_sound = pygame.mixer.Sound('sounds/explosion.wav')
-Explosion_sound.set_volume(0.3)
+            self.Display_surf.fill('#050526')
+            self.all_sprites.draw(self.Display_surf)
 
-dead_sound = pygame.mixer.Sound('sounds/dead.wav')
-dead_sound.set_volume(0.3)
-# sprites
-all_sprites = pygame.sprite.Group()
-Aste_sprites = pygame.sprite.Group()
-laser_sprites = pygame.sprite.Group()
+            self.particle_group.draw(self.Display_surf)
+            self.particle_group.update(dt)
 
-for i in range(20):
-    star_x = random.randint(5,245)
-    star_y = random.randint(5,245)
-    stars((star_x, star_y), star_surf,all_sprites)
+            print(len(self.particle_group.sprites()))
+            self.Display_score()
+            self.screen.blit(pygame.transform.scale(self.Display_surf, self.screen.get_size()),(0,0))
+            pygame.display.update()
+        
 
-player = Player(all_sprites)
-
-# Asteroid timer(event)
-Asteroid_event = pygame.event.custom_type() 
-pygame.time.set_timer(Asteroid_event, 500) 
-
-while game_run:
-    dt = clock.tick() / 1000
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
-
-        if event.type == Asteroid_event:
-            Asteroid_x = randint(250,300)
-            Asteroid_y = randint(0,250)
-            Asteroids(Asteroids_surf,(Asteroid_x, Asteroid_y), (all_sprites, Aste_sprites))
-
-    all_sprites.update(dt)
-    Collision()
-   
-    Display_surf.fill('#050526')
-    all_sprites.draw(Display_surf)
-    Display_score()
-    screen.blit(pygame.transform.scale(Display_surf, screen.get_size()),(0,0))
-    pygame.display.update()
-   
+Game().run()
