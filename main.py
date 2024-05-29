@@ -130,10 +130,10 @@ class Game:
     def __init__(self):   
         pygame.init() 
         pygame.display.set_caption('Space Walk')
-        self.screen = pygame.display.set_mode((500,500))
+        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.Display_surf = pygame.Surface((250,250))
         self.clock = pygame.time.Clock()
-        self.state = START_SCREEN # initial state
+        self.state = GAME_OVER # initial state
         self.start_timer = 0 # to track the start time of the game
         self.current_time = 0 # to track the current time elapsed
 
@@ -148,7 +148,7 @@ class Game:
             'explosion_sound': pygame.mixer.Sound('sounds/explosion.wav'),
             'dead_sound': pygame.mixer.Sound('sounds/dead.wav'),
             'player': load_image('rocket.png'),
-            'start_bg': load_image('BG.png')
+            'start_BG': load_image('BG.png')
         }
 
         # volumes of sound
@@ -221,19 +221,56 @@ class Game:
     
     # games_start_screen
     def start_screen(self):
-        self.screen.fill((5,150,140))
-        self.text = self.text_font.render('Start', False, (255,255,255))
-        self.screen.blit(self.text, (100,200))
+        self.screen.blit(self.assets['start_BG'],(0,0))
+        mos = pygame.mouse.get_pos()
+        self.font = pygame.font.Font('font/Rubik.ttf', 40)
+        
+        # text_surface
+        self.start_text = self.font.render('Start', False, (255,255,255))
+        self.option_text = self.font.render('Option', False, (255,255,255))
+        self.exit_text = self.font.render('Exit', False, (255,255,255))
 
+        # text position
+        self.start_pos = (200, 170)
+        self.option_pos = (200, 230)
+        self.exit_pos = (200, 290)
+
+        # RECT
+        self.button_start = self.start_text.get_frect(center = self.start_pos)
+        self.button_option = self.option_text.get_frect(center = self.option_pos)
+        self.button_exit = self.exit_text.get_frect(center = self.exit_pos)
+
+    
+        # condition
+        # check hover
+        if self.button_start.collidepoint(mos):
+            self.start_text = self.font.render('Start', False, 'Red')
+        if self.button_option.collidepoint(mos):
+            self.option_text = self.font.render('Option', False, 'Red')
+        if self.button_exit.collidepoint(mos):
+            self.exit_text = self.font.render('Exit', False, 'Red')
+
+
+        # blit
+        self.screen.blit(self.start_text, self.start_pos)
+        self.screen.blit(self.option_text, self.option_pos)
+        self.screen.blit(self.exit_text, self.exit_pos)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.button_start.collidepoint(mos):
                     self.state = GAME_RUN
                     self.start_timer = pygame.time.get_ticks()
+                elif self.button_option.collidepoint(mos):
+                    print('option clicked')
+
+                elif self.button_exit.collidepoint(mos):
+                    pygame.quit()
+                    sys.exit()
+
         pygame.display.flip()
 
 
@@ -241,7 +278,7 @@ class Game:
     def game_run(self):
         
         dt = self.clock.tick() / 1000
-        self.current_time= (pygame.time.get_ticks() - self.start_timer) /1000 # update timer to sec form  millisecond
+        self.current_time= (pygame.time.get_ticks() - self.start_timer) // 1000 # update timer to sec form  millisecond
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -276,9 +313,20 @@ class Game:
     # game over
     def game_over_screen(self):
         self.screen.fill((4,150,140))
-        self.text = self.text_font.render('GAME_OVER', False,('#ffffff'))
-        self.Display_surf.blit(self.text,(100,200))
+        self.font = pygame.font.Font('font/pixelify_sans.ttf', 60)
         
+        # Game over text
+        self.text = self.font.render('GAME_OVER', False,('#050526'))
+        self.screen.blit(self.text,(90,100))
+
+        # score
+        self.show_score = self.font.render(f'Score: {str(self.current_time)}', False,'#ffffff')
+        self.screen.blit(self.show_score, (140,170))
+        
+        # restart
+        self.msg_font = pygame.font.Font('font/Rubik.ttf', 20)
+        self.msg = self.msg_font.render('PRESS R TO RESTART', False, '#ffffff')
+        self.screen.blit(self.msg,(150,250))        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
