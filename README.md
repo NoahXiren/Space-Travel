@@ -19,22 +19,10 @@ In Space Walk, you control a rocket that must avoid and destroy asteroids. The o
 
 ## Installation
 
-1. **Clone the repository:**
+**Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/space-walk.git
+   git clone https://github.com/NoahXiren/Space-Travel.git
    cd space-walk
-   ```
-
-2. **Install the required dependencies:**
-   Make sure you have Python and pip installed. Then run:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Ensure you have Pygame installed:**
-   If not already included in your `requirements.txt`, install Pygame using:
-   ```bash
-   pip install pygame-ce
    ```
 
 ## Running the Game
@@ -47,7 +35,7 @@ python main.py
 ## Dependencies
 
 - **Python 3.x**
-- **Pygame**: Used for game development, including graphics and sound.(community edition)
+- **Pygame-ce**: Used for game development, including graphics and sound.(community edition)
 
 ## Game Structure
 
