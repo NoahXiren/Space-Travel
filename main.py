@@ -133,7 +133,7 @@ class Game:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.Display_surf = pygame.Surface((250,250))
         self.clock = pygame.time.Clock()
-        self.state = GAME_OVER # initial state
+        self.state = START_SCREEN # initial state
         self.start_timer = 0 # to track the start time of the game
         self.current_time = 0 # to track the current time elapsed
 
